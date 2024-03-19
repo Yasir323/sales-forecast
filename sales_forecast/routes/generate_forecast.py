@@ -8,5 +8,5 @@ generate_forecast_bp = Blueprint("generate_forecast_bp", __name__)
 @generate_forecast_bp.route('/generate-forecast', methods=['POST'])
 def trigger_forecast():
     """API to trigger forecast generation job"""
-    generate_forecast()
+    generate_forecast.apply_async()
     return jsonify({'message': 'Forecast generation triggered successfully'}), 200

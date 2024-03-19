@@ -1,34 +1,12 @@
 import datetime
 import os
-
 import pandas as pd
+from celery import shared_task
 
 from sales_forecast import db
 
 
-def get_budget_data(df):
-    # Budget data
-    df1 = df["BudgetData"]
-    df1.reset_index(drop=True, inplace=True)
-    return df1
-
-
-def get_sales_data(df):
-    df1 = df["SaleData"]
-    df1 = df1.dropna(axis=0, how="all")
-    df1.reset_index(drop=True, inplace=True)
-    return df1
-
-
-def get_data_from_excel(file):
-    df = pd.read_excel(file, header=[0, 1], index_col=0)
-    df.dropna(axis=1, how="all", inplace=True)
-
-    budget_data = get_budget_data(df)
-    sales_data = get_sales_data(df)
-    return budget_data, sales_data
-
-
+@shared_task
 def generate_forecast():
     """
     Calculation of Quantity:
@@ -36,6 +14,7 @@ def generate_forecast():
     Quantity = AvgSales * no of days in that week * BudgetFactor,
     where BudgetFactor = current week budget / previous week budget
     """
+    print("Started")
     postfix = datetime.datetime.now().isoformat().replace("-", "_").split("T")[0]
     file_name = f"SalesForecast{postfix}.xlsx"
     out_dir = os.path.join("resources", "generated_reports")
@@ -74,11 +53,30 @@ def generate_forecast():
             days_left -= no_of_days_in_the_week
             no_of_days_in_the_week = 7 if days_left >= 7 else days_left
 
-    return save_forecast(forecast, file)
+    pd.DataFrame(forecast).to_excel(file)
 
 
-def save_forecast(forecast: list, file: str):
-    return pd.DataFrame(forecast).to_excel(file)
+def get_budget_data(df):
+    # Budget data
+    df1 = df["BudgetData"]
+    df1.reset_index(drop=True, inplace=True)
+    return df1
+
+
+def get_sales_data(df):
+    df1 = df["SaleData"]
+    df1 = df1.dropna(axis=0, how="all")
+    df1.reset_index(drop=True, inplace=True)
+    return df1
+
+
+def get_data_from_excel(file):
+    df = pd.read_excel(file, header=[0, 1], index_col=0)
+    df.dropna(axis=1, how="all", inplace=True)
+
+    budget_data = get_budget_data(df)
+    sales_data = get_sales_data(df)
+    return budget_data, sales_data
 
 
 def get_sales_report(postfix: str):
