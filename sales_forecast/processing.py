@@ -1,5 +1,7 @@
 import datetime
 import os
+from typing import Tuple
+
 import pandas as pd
 from celery import shared_task
 
@@ -7,12 +9,18 @@ from sales_forecast import db
 
 
 @shared_task
-def generate_forecast():
+def generate_forecast() -> None:
     """
-    Calculation of Quantity:
+    Generate sales forecast based on average sales and budget data.
 
-    Quantity = AvgSales * no of days in that week * BudgetFactor,
-    where BudgetFactor = current week budget / previous week budget
+    This function calculates the forecasted quantity for each article based on
+    its average sales, current week's budget, and previous week's budget.
+
+    The forecasted quantity is then saved to an Excel file in the 'generated_reports'
+    directory.
+
+    Returns:
+        None
     """
     print("Started")
     postfix = datetime.datetime.now().isoformat().replace("-", "_").split("T")[0]
@@ -56,21 +64,47 @@ def generate_forecast():
     pd.DataFrame(forecast).to_excel(file)
 
 
-def get_budget_data(df):
-    # Budget data
+def get_budget_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Retrieve budget data from a DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing budget data.
+
+    Returns:
+        pd.DataFrame: DataFrame containing budget data.
+    """
     df1 = df["BudgetData"]
     df1.reset_index(drop=True, inplace=True)
     return df1
 
 
-def get_sales_data(df):
+def get_sales_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Retrieve sales data from a DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing sales data.
+
+    Returns:
+        pd.DataFrame: DataFrame containing sales data.
+    """
     df1 = df["SaleData"]
     df1 = df1.dropna(axis=0, how="all")
     df1.reset_index(drop=True, inplace=True)
     return df1
 
 
-def get_data_from_excel(file):
+def get_data_from_excel(file: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Read data from an Excel file and extract budget and sales data.
+
+    Args:
+        file (str): Path to the Excel file.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: Tuple containing budget data DataFrame and sales data DataFrame.
+    """
     df = pd.read_excel(file, header=[0, 1], index_col=0)
     df.dropna(axis=1, how="all", inplace=True)
 
@@ -79,6 +113,15 @@ def get_data_from_excel(file):
     return budget_data, sales_data
 
 
-def get_sales_report(postfix: str):
+def get_sales_report(postfix: str) -> pd.DataFrame:
+    """
+    Retrieve sales report data from the MongoDB collection.
+
+    Args:
+        postfix (str): Postfix string to append to the collection name.
+
+    Returns:
+        pd.DataFrame: DataFrame containing sales report data.
+    """
     data = db.get_many("SalesReport" + postfix)
     return pd.DataFrame(data)

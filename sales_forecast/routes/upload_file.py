@@ -9,7 +9,18 @@ upload_file_bp = Blueprint('upload_file', __name__)
 @upload_file_bp.route('/upload', methods=['POST'])
 def upload_file():
     """
-    End-point Handle file uploads
+    Handle file uploads and store data in MongoDB.
+
+    This endpoint allows users to upload an Excel file containing budget and sales data.
+    The uploaded file is read, and the budget and sales data are extracted using the
+    get_data_from_excel function. The extracted data is then stored in the MongoDB database
+    using the db.save method.
+
+    Returns:
+        Response: JSON response indicating the status of the file upload process.
+            - If the file is uploaded successfully and data is saved to the database, returns a success message
+                (status code 200).
+            - If there is an error during the upload process, returns an error message with the appropriate status code.
     """
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
